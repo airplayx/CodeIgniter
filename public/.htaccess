@@ -1,0 +1,20 @@
+RewriteEngine on
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond $1 !^(index\.php|favicon.ico|public|robots\.txt)
+RewriteRule ^(.*)$ index.php/$1 [L]
+RewriteCond %{REQUEST_METHOD} ^TRACE
+RewriteRule .* - [F]
+Options -Indexes
+
+#RewriteBase /
+#RewriteCond %{SERVER_PORT} !^443$
+#RewriteRule ^.*$ https://%{SERVER_NAME}%{REQUEST_URI} [L,R=301]
+
+ErrorDocument 403 /
+ErrorDocument 404 /
+
+#nginx去掉index.php
+#location /{
+	#try_files $uri $uri/ /index.php?$uri&$args;
+#}
