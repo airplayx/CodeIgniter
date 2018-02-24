@@ -13,8 +13,6 @@ PHP>=7.0
 
 ## 安装
 
-克隆或下载项目并在application目录执行 [composer update](https://packagist.org) :blush:
-
 请参阅 CodeIgniter用户指南的 [安装部分](https://codeigniter.com/user_guide/installation/index.html)
 
 ## 更新日志和新功能
@@ -25,19 +23,43 @@ PHP>=7.0
 	* index.php已经搬到了public目录。
 
 
-#### 1.全面支持composer。
-	默认引入了以下几个有用的扩展包：
-		"electrolinux/phpquery": "^0.9.6",	//php爬虫工具
-		"predis/predis": "^1.1",	//redis操作库
-		"smarty/smarty": "^3.1",	//smarty模板
-		"khanamiryan/qrcode-detector-decoder": "^1.0",	//二维码解析
-		"sfnt/wechat-php-sdk": "^1.1",	//微信公众号开发SDK
-		"phpoffice/phpexcel": "^1.8",	//EXCEL表格工具
-		"kairos/phpqrcode": "^1.0"	//二维码生成
-		"firebase/php-jwt": "^5.0"	//接口安全交互套件JWT
-	请移步到 https://packagist.org 了解详情。
+#### 1.全新的HMVC架构(灵感来自[hex-ci](https://github.com/hex-ci/CodeIgniter-HMVC)):
 
-#### 2.新增file_url方法：
+
+	如果您还不了解什么是 HMVC，请先移步维基百科查看：
+	http://zh.wikipedia.org/wiki/HMVC
+
+	扩展方式是在 application 目录下增加 modules 目录，每个模块有自己的目录，并且模块可以有一级子目录，
+	比如 application/modules/目录/模块名/....
+
+	每个模块都有自己的 MVC 结构，像这样:
+	application/modules/模块名/controllers
+	application/modules/模块名/models
+	application/modules/模块名/views
+
+	从 URL 访问某个模块的某个方法，URL 规则是这样的：
+	http://domain/index.php/模块名/控制器/方法
+
+	如果要通过 URL 传递参数，则直接加在 URL 后面：
+	http://domain/index.php/模块名/控制器/方法/参数1/参数2/..../参数n
+	另外，这里的 URI 可以使用路由规则，也就是说什么样的 URL 都可以，
+	只要最后路由成符合上面的规则即可，比如要使用这样的 URL：
+
+	http://domain/index.php/m/模块名/控制器/方法
+	可以在 routers.php 里添加一个路由规则：
+
+```php
+$route['m/(:any)/(:any)/(:any)/(:any)'] = 'module/$1/$2/$3/$4';
+```
+注意：controllers文件夹已被弃用，而application目录下的models、services、views文件夹将会是公共目录，
+系统会根据需要从当前模块出发查找相应文件。未发现文件时，即回到公共目录查找，如果依然未找到，将会展示404错误页面。
+
+最后请不要忘记配置默认模块：
+```php
+$route['default_module'] = '';
+```
+
+#### 2.新增file_url方法:
 
 	这个方法的作用是引入外部样式主题文件，跟site_url()、base_url()一样你需要引入$this->load->helper('url');
 	你也可以在config.php中统一配置域名。

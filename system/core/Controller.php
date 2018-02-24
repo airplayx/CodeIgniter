@@ -74,8 +74,13 @@ class CI_Controller {
 		{
 			$this->$var =& load_class($class);
 		}
-
 		$this->load =& load_class('Loader', 'core');
+		$reflector = new ReflectionClass($this);
+		$path = substr(dirname($reflector->getFileName()), strlen(realpath(APPPATH.'modules').DIRECTORY_SEPARATOR));
+		$class_path = implode('/', array_slice(explode(DIRECTORY_SEPARATOR, $path), 0, -1));
+		$class_name = $reflector->getName();
+		// 通知 Loader 类，Module 就绪
+		$this->load->_ci_module_ready($class_path, $class_name);
 		$this->load->initialize();
 		log_message('info', 'CI_Controller Class Initialized');
 	}

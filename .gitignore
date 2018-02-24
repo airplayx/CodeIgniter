@@ -4,6 +4,7 @@
 application/vendor/
 application/composer.lock
 !public/index.php
+_writable/*
 
 
 # IDE Files

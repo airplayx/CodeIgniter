@@ -137,6 +137,11 @@ class CI_Loader {
 		'user_agent' => 'agent'
 	);
 
+	var $_ci_is_inside_module = false; 
+    var $_ci_module_path = '';
+    var $_ci_module_class = '';
+    var $_ci_module_models = array();
+
 	// --------------------------------------------------------------------
 
 	/**
@@ -153,6 +158,22 @@ class CI_Loader {
 
 		log_message('info', 'Loader Class Initialized');
 	}
+
+	// --------------------------------------------------------------------
+
+    public function _ci_module_ready($class_path, $class_name)
+    {
+        $CI =& get_instance();
+
+        $this->_ci_is_inside_module = true;
+        $this->_ci_module_path = $class_path;
+        $this->_ci_module_class = $class_name;
+
+        // unset($this->_ci_classes);
+        // $this->_ci_classes = $CI->load->_ci_classes;
+
+        $this->_ci_models = array();
+    }
 
 	// --------------------------------------------------------------------
 
@@ -283,10 +304,24 @@ class CI_Loader {
 		}
 
 		$CI =& get_instance();
-		if (isset($CI->$name))
-		{
-			throw new RuntimeException('The model name you are loading is the name of a resource that is already being used: '.$name);
-		}
+		$model_paths = $this->_ci_model_paths;
+		if ($this->_ci_is_inside_module)
+        {
+        	//加载当前模块内模型
+            $module_class_name = $this->_ci_module_class;
+            array_unshift($model_paths, APPPATH.'modules/'.$this->_ci_module_path.'/');
+            if (isset($CI->$module_class_name->$name))
+            {
+                throw new RuntimeException('The model name you are loading is the name of a resource that is already being used: '.$module_class_name.'.'.$$model.$CI->config->item('model_suffix'));
+            }
+        }
+        else
+        {
+            if (isset($CI->$name))
+            {
+                throw new RuntimeException('The model name you are loading is the name of a resource that is already being used: '.$name);
+            }
+        }
 
 		if ($db_conn !== FALSE && ! class_exists('CI_DB', FALSE))
 		{
@@ -338,29 +373,27 @@ class CI_Loader {
 		}
 
 		$model = ucfirst($model);
+		$model_class=$model.$CI->config->item('model_suffix');
 		if ( ! class_exists($model, FALSE))
 		{
-			$model_class=$model.$CI->config->item('model_suffix');
-			foreach ($this->_ci_model_paths as $mod_path)
+			
+			foreach ($model_paths as $model_path_index => $mod_path)
 			{
 				if ( ! file_exists($mod_path.'models/'.$path.$model.'.php'))
 				{
 					continue;
 				}
-
 				require_once($mod_path.'models/'.$path.$model.'.php');
-				if ( ! class_exists($model_class, FALSE))
-				{
-					throw new RuntimeException($mod_path."models/".$path.$model.".php exists, but doesn't declare class ".$model_class);
-				}
-
+                if ( ! class_exists($model_class, FALSE))
+                {
+                    throw new RuntimeException($mod_path."models/".$path.$model.".php exists, but doesn't declare class ".$model_class);
+                }
 				break;
 			}
-
 			if ( ! class_exists($model_class, FALSE))
-			{
-				throw new RuntimeException('Unable to locate the model you have specified: '.$model_class);
-			}
+            {
+                throw new RuntimeException('Unable to locate the model you have specified: '.$model_class);
+            }
 		}
 		elseif ( ! is_subclass_of($model_class, 'CI_Model'))
 		{
@@ -368,7 +401,7 @@ class CI_Loader {
 		}
 
 		$this->_ci_models[] = $name;
-		$model = new $model_class();
+        $model = new $model_class();
 		$CI->$name = $model;
 		log_message('info', 'Model "'.get_class($model).'" initialized');
 		return $this;
@@ -395,6 +428,11 @@ class CI_Loader {
 		// Do we even need to load the database class?
 		if ($return === FALSE && $query_builder === NULL && isset($CI->db) && is_object($CI->db) && ! empty($CI->db->conn_id))
 		{
+			if ($this->_ci_is_inside_module and isset($CI->db))
+            {
+                $module_class_name = $this->_ci_module_class;
+                $CI->$module_class_name->db =& $CI->db;
+            }
 			return FALSE;
 		}
 
@@ -413,7 +451,7 @@ class CI_Loader {
 		$CI->db =& DB($params, $query_builder);
 		return $this;
 	}
-
+	
 	// --------------------------------------------------------------------
 
 	/**
@@ -506,7 +544,25 @@ class CI_Loader {
 	 */
 	public function view($view, $vars = array(), $return = FALSE)
 	{
-		return $this->_ci_load(array('_ci_view' => $view, '_ci_vars' => $this->_ci_prepare_view_vars($vars), '_ci_return' => $return));
+		if ($this->_ci_is_inside_module)
+        {
+            $ext = pathinfo($view, PATHINFO_EXTENSION);
+            $view = ($ext == '') ? $view.'.php' : $view;
+            $path = APPPATH.'modules/'.$this->_ci_module_path.'/views/'.$view;
+
+            if (file_exists($path))
+            {
+                return $this->_ci_load(array('_ci_view' => $view, '_ci_vars' => $this->_ci_object_to_array($vars), '_ci_path' => $path, '_ci_return' => $return));
+            }
+            else
+            {
+                return $this->_ci_load(array('_ci_view' => $view, '_ci_vars' => $this->_ci_object_to_array($vars), '_ci_return' => $return));
+            }
+        }
+        else
+        {
+			return $this->_ci_load(array('_ci_view' => $view, '_ci_vars' => $this->_ci_prepare_view_vars($vars), '_ci_return' => $return));
+		}
 	}
 
 	/**
@@ -824,8 +880,10 @@ class CI_Loader {
 	 */
 	public function language($files, $lang = '')
 	{
-		get_instance()->lang->load($files, $lang);
-		return $this;
+		$CI = & get_instance();
+
+        $CI->lang->load($files, $lang);
+        return $this;
 	}
 
 	// --------------------------------------------------------------------
@@ -843,7 +901,8 @@ class CI_Loader {
 	 */
 	public function config($file, $use_sections = FALSE, $fail_gracefully = FALSE)
 	{
-		return get_instance()->config->load($file, $use_sections, $fail_gracefully);
+		$CI = & get_instance();
+        return $CI->config->load($file, $use_sections, $fail_gracefully);
 	}
 
 	// --------------------------------------------------------------------
@@ -1214,10 +1273,37 @@ class CI_Loader {
 
 			$filepath = $path.'libraries/'.$subdir.$class.'.php';
 			// Does the file exist? No? Bummer...
-			if ( ! file_exists($filepath))
-			{
-				continue;
-			}
+			 if (class_exists($class, FALSE))
+            {
+                if (!empty($this->_ci_module_path))
+                {
+                    $CI = & get_instance();
+                    if ( ! isset($CI->$class))
+                    {
+                        return $this->_ci_init_library($class, '', $params, $object_name);
+                    }
+                }
+
+                // Before we deem this to be a duplicate request, let's see
+                // if a custom object name is being supplied. If so, we'll
+                // return a new instance of the object
+                if ($object_name !== NULL)
+                {
+                    $CI = & get_instance();
+                    if ( ! isset($CI->$object_name))
+                    {
+                        return $this->_ci_init_library($class, '', $params, $object_name);
+                    }
+                }
+
+                log_message('debug', $class.' class already loaded. Second attempt ignored.');
+                return;
+            }
+            // Does the file exist? No? Bummer...
+            elseif ( ! file_exists($filepath))
+            {
+                continue;
+            }
 
 			include_once($filepath);
 			return $this->_ci_init_library($class, '', $params, $object_name);
@@ -1550,6 +1636,21 @@ class CI_Loader {
 	protected function &_ci_get_component($component)
 	{
 		$CI =& get_instance();
-		return $CI->$component;
+
+        return $CI->$component;
 	}
+
+     /**
+     * CI Object to Array translator
+     *
+     * Takes an object as input and converts the class variables to
+     * an associative array with key/value pairs.
+     *
+     * @param	object	$object	Object data to translate
+     * @return	array
+     */
+    protected function _ci_object_to_array($object)
+    {
+        return is_object($object) ? get_object_vars($object) : $object;
+    }
 }

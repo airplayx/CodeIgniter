@@ -2,7 +2,6 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Welcome_Controller extends CI_Controller {
-
 	/**
 	 * Index Page for this controller.
 	 *
@@ -22,4 +21,5 @@ class Welcome_Controller extends CI_Controller {
 	{
 		$this->load->view('welcome_message');
 	}
+
 }

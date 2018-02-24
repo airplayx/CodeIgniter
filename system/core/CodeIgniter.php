@@ -369,6 +369,7 @@ if ( ! is_php('5.4'))
 		return CI_Controller::get_instance();
 	}
 
+
 	if (file_exists(APPPATH.'core/'.$CFG->config['subclass_prefix'].'Controller.php'))
 	{
 		require_once APPPATH.'core/'.$CFG->config['subclass_prefix'].'Controller.php';
@@ -399,18 +400,19 @@ if ( ! is_php('5.4'))
  */
 
 	$e404 = FALSE;
+	$module = ucfirst($RTR->module);
 	$class = ucfirst($RTR->class);
 	$class_file = ucfirst($RTR->class_file);
 	$method = $RTR->method;
 
-	if (empty($class) OR ! file_exists(APPPATH.'controllers/'.$RTR->directory.$class_file.'.php'))
+	if (empty($class) OR ! file_exists(APPPATH.'modules/'.$module.'/'.$RTR->directory.'controllers/'.$class_file.'.php'))
 	{
 		$e404 = TRUE;
 	}
 	else
 	{
-		require_once(APPPATH.'controllers/'.$RTR->directory.$class_file.'.php');
-
+		require_once(APPPATH.'modules/'.$module.'/'.$RTR->directory.'controllers/'.$class_file.'.php');
+		
 		if ( ! class_exists($class, FALSE) OR $method[0] === '_' OR method_exists('CI_Controller', $method))
 		{
 			$e404 = TRUE;
@@ -498,7 +500,7 @@ if ( ! is_php('5.4'))
 
 	if ($method !== '_remap')
 	{
-		$params = array_slice($URI->rsegments, 2);
+		$params = array_slice($URI->rsegments, 4);
 	}
 
 /*

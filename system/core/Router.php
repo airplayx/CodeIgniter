@@ -65,6 +65,12 @@ class CI_Router {
 	public $routes =	array();
 
 	/**
+	 * Current module name
+	 *
+	 * @var	string
+	 */
+	public $module =		'';
+	/**
 	 * Current class name
 	 *
 	 * @var	string
@@ -99,11 +105,19 @@ class CI_Router {
 	public $directory;
 
 	/**
+	 * Default module (and controller if specific)
+	 *
+	 * @var	string
+	 */
+	public $default_module;
+
+	/**
 	 * Default controller (and method if specific)
 	 *
 	 * @var	string
 	 */
 	public $default_controller;
+
 
 	/**
 	 * Translate URI dashes
@@ -140,7 +154,6 @@ class CI_Router {
 		$this->uri =& load_class('URI', 'core');
 
 		$this->enable_query_strings = ( ! is_cli() && $this->config->item('enable_query_strings') === TRUE);
-
 		// If a directory override is configured, it has to be set before any dynamic routing logic
 		is_array($routing) && isset($routing['directory']) && $this->set_directory($routing['directory']);
 		$this->_set_routing();
@@ -183,6 +196,7 @@ class CI_Router {
 		// Validate & get reserved routes
 		if (isset($route) && is_array($route))
 		{
+			isset($route['default_module']) && $this->default_module = $route['default_module'];
 			isset($route['default_controller']) && $this->default_controller = $route['default_controller'];
 			isset($route['translate_uri_dashes']) && $this->translate_uri_dashes = $route['translate_uri_dashes'];
 			unset($route['default_controller'], $route['translate_uri_dashes']);
@@ -221,6 +235,7 @@ class CI_Router {
 				}
 
 				$this->uri->rsegments = array(
+					0 => $this->module,
 					1 => $this->class,
 					2 => $this->method
 				);
@@ -261,6 +276,7 @@ class CI_Router {
 	protected function _set_request($segments = array())
 	{
 		$segments = $this->_validate_request($segments);
+
 		// If we don't have any segments left - try the default controller;
 		// WARNING: Directories get shifted out of the segments array!
 		if (empty($segments))
@@ -268,29 +284,23 @@ class CI_Router {
 			$this->_set_default_controller();
 			return;
 		}
-
+		
 		if ($this->translate_uri_dashes === TRUE)
 		{
-			$segments[0] = str_replace('-', '_', $segments[0]);
-			if (isset($segments[1]))
+			$segments[2] = str_replace('-', '_', $segments[2]);
+			if (isset($segments[3]))
 			{
-				$segments[1] = str_replace('-', '_', $segments[1]);
+				$segments[3] = str_replace('-', '_', $segments[3]);
 			}
 		}
 
-		$this->set_class($segments[0]);
-		$this->set_class_file($segments[0]);
-		if (isset($segments[1]))
-		{
-			$this->set_method($segments[1]);
-		}
-		else
-		{
-			$segments[1] = 'index';
-		}
+		$this->set_module($segments[0]);
+		$this->set_class($segments[2]);
+		$this->set_class_file($segments[2]);
+		$this->set_method(isset($segments[3])?$segments[3]:$this->method);
 
-		array_unshift($segments, NULL);
-		unset($segments[0]);
+		// array_unshift($segments, NULL);
+		// unset($segments[0]);
 		$this->uri->rsegments = $segments;
 	}
 
@@ -311,25 +321,28 @@ class CI_Router {
 		// Is the method being specified?
 		if (sscanf($this->default_controller, '%[^/]/%s', $class, $method) !== 2)
 		{
-			$method = 'index';
+			$method = $this->method;
 		}
 
-		if ( ! file_exists(APPPATH.'controllers/'.$this->directory.ucfirst($class).'.php'))
+
+		if ( ! file_exists(APPPATH.'modules/'.$this->default_module.'/'.$this->directory.'controllers/'.ucfirst($class).'.php'))
 		{
 			// This will trigger 404 later
 			return;
 		}
-
+		$module=$this->default_module;
+		$this->set_module($module);
 		$this->set_class($class);
 		$this->set_class_file($class);
 		$this->set_method($method);
 
 		// Assign routed segments, index starting from 1
 		$this->uri->rsegments = array(
-			1 => $class,
-			2 => $method
+			0 => $module,
+			1 => $this->directory,
+			2 => $class,
+			3 => $method
 		);
-
 		log_message('debug', 'No URI present. Default controller set.');
 	}
 
@@ -347,30 +360,36 @@ class CI_Router {
 	protected function _validate_request($segments)
 	{
 		$c = count($segments);
-		$directory_override = isset($this->directory);
 
+		$directory_override = isset($this->directory);
 		// Loop through our segments and return as soon as a controller
 		// is found or when such a directory doesn't exist
+		$default_request=[$this->default_module,$this->directory,$this->default_controller,$this->method];
 		while ($c-- > 0)
 		{
 			$test = $this->directory
 				.ucfirst($this->translate_uri_dashes === TRUE ? str_replace('-', '_', $segments[0]) : $segments[0]);
-
-			if ( ! file_exists(APPPATH.'controllers/'.$test.'.php')
-				&& $directory_override === FALSE
-				&& is_dir(APPPATH.'controllers/'.$this->directory.$segments[0])
-			)
-			{
-				$this->set_directory(array_shift($segments), TRUE);
-				continue;
+			if(!isset($segments[1])){
+				$segments[1]=$this->default_controller;
 			}
-
+			if ( 
+				! file_exists(APPPATH.'modules/'.$test.'/controllers/'.$segments[1].'.php')
+				&& $directory_override === FALSE
+				&& is_dir(APPPATH.'modules/'.$this->directory.$segments[0])
+			){
+				$this->set_directory($segments[1], TRUE);
+				continue;
+			}elseif(is_dir(APPPATH.'modules/'.$test)){
+				array_splice($segments,1,0,'');
+			}
+			$segments=array_replace($default_request,$segments);
 			return $segments;
 		}
-
+		$segments=array_replace($default_request,$segments);
 		// This means that all segments were actually directories
 		return $segments;
 	}
+
 
 	// --------------------------------------------------------------------
 
@@ -429,10 +448,10 @@ class CI_Router {
 				}
 
 				$this->_set_request(explode('/', $val));
+
 				return;
 			}
 		}
-
 		// If we got this far it means we didn't encounter a
 		// matching route so we'll set the site default route
 		$this->_set_request(array_values($this->uri->segments));
@@ -440,6 +459,16 @@ class CI_Router {
 
 	// --------------------------------------------------------------------
 
+	/**
+	 * Set class name
+	 *
+	 * @param	string	$class	Class name
+	 * @return	void
+	 */
+	public function set_module($module)
+	{
+		$this->module = $module;
+	}
 	/**
 	 * Set class name
 	 *

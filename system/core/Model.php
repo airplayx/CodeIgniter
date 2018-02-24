@@ -54,7 +54,15 @@ class CI_Model {
 	 * @link	https://github.com/bcit-ci/CodeIgniter/issues/5332
 	 * @return	void
 	 */
-	public function __construct() {}
+	public function __construct() {
+		$reflector = new ReflectionClass($this);
+        $class_name = $reflector->getName();
+        $CI =& get_instance();
+        if (!empty($CI->load->_ci_module_models[$class_name]))
+        {
+            $this->_ci_module_class = $CI->load->_ci_module_models[$class_name];
+        }
+	}
 
 	/**
 	 * __get magic
