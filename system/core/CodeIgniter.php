@@ -55,7 +55,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * @var	string
  *
  */
-	const CI_VERSION = '3.1.7up';
+	const CI_VERSION = '3.1.7up(HMVC)';
 
 /*
  * ------------------------------------------------------
@@ -401,17 +401,19 @@ if ( ! is_php('5.4'))
 
 	$e404 = FALSE;
 	$module = ucfirst($RTR->module);
+	$module_path=config_item('module_folder').DIRECTORY_SEPARATOR;
+	$directory = $RTR->directory;
 	$class = ucfirst($RTR->class);
 	$class_file = ucfirst($RTR->class_file);
 	$method = $RTR->method;
-
-	if (empty($class) OR ! file_exists(APPPATH.'modules/'.$module.'/'.$RTR->directory.'controllers/'.$class_file.'.php'))
+	
+	if (empty($class) OR ! file_exists(APPPATH.$module_path.$module.'/'.$directory.'controllers/'.$class_file.'.php'))
 	{
 		$e404 = TRUE;
 	}
 	else
 	{
-		require_once(APPPATH.'modules/'.$module.'/'.$RTR->directory.'controllers/'.$class_file.'.php');
+		require_once(APPPATH.$module_path.$module.'/'.$directory.'controllers/'.$class_file.'.php');
 		
 		if ( ! class_exists($class, FALSE) OR $method[0] === '_' OR method_exists('CI_Controller', $method))
 		{
@@ -451,34 +453,54 @@ if ( ! is_php('5.4'))
 	{
 		if ( ! empty($RTR->routes['404_override']))
 		{
-			if (sscanf($RTR->routes['404_override'], '%[^/]/%s', $error_class, $error_method) !== 2)
-			{
-				$error_method = 'index';
-			}
+			$url_format_count=sscanf($RTR->routes['404_override'], '%[^/]/%[^/]/%[^/]/%s', $error[0],$error[1],$error[2], $error[3]);
 
-			$error_class = ucfirst($error_class);
-
-			if ( ! class_exists($error_class, FALSE))
-			{
-				if (file_exists(APPPATH.'controllers/'.$RTR->directory.$error_class.'.php'))
-				{
-					require_once(APPPATH.'controllers/'.$RTR->directory.$error_class.'.php');
-					$e404 = ! class_exists($error_class, FALSE);
-				}
-				// Were we in a directory? If so, check for a global override
-				elseif ( ! empty($RTR->directory) && file_exists(APPPATH.'controllers/'.$error_class.'.php'))
-				{
-					require_once(APPPATH.'controllers/'.$error_class.'.php');
-					if (($e404 = ! class_exists($error_class, FALSE)) === FALSE)
-					{
-						$RTR->directory = '';
+			$error_class=NULL;
+			switch ($url_format_count) {
+				case 4:	//like a/b/c/d
+					if(file_exists(APPPATH.$module_path.$error[0].'/'.$error[1].'/controllers/'.$error[2].'.php')){
+						require_once(APPPATH.$module_path.$error[0].'/'.$error[1].'/controllers/'.$error[2].'.php');
+						$error_class = $error[2];
+						$error_method = $error[3];
+						$RTR->directory = $error[1];
 					}
-				}
+					break;
+				case 3://like a/b/c
+					if(is_dir(APPPATH.$module_path.$error[0].'/'.$error[1])){
+						if(file_exists(APPPATH.$module_path.$error[0].'/'.$error[1].'/controllers/'.$error[2].'.php')){
+							require_once(APPPATH.$module_path.$error[0].'/'.$error[1].'/controllers/'.$error[2].'.php');
+							$error_class = $error[2];
+							$error_method = $method;
+							$RTR->directory = $error[1];
+						}
+					}elseif(file_exists(APPPATH.$module_path.$error[0].'/controllers/'.$error[1].'.php')){
+							require_once(APPPATH.$module_path.$error[0].'/controllers/'.$error[1].'.php');
+							$error_class = $error[1];
+							$error_method = $error[2];
+					}
+					break;
+				case 2://like a/b
+					if(is_dir(APPPATH.$module_path.$error[0].'/'.$error[1])){
+						if(file_exists(APPPATH.$module_path.$error[0].'/'.$error[1].'/controllers/'.$RTR->routes['default_controller'].'.php')){
+							require_once(APPPATH.$module_path.$error[0].'/'.$error[1].'/controllers/'.$RTR->routes['default_controller'].'.php');
+							$error_class = $RTR->routes['default_controller'];
+							$error_method = $method;
+							$RTR->directory = $error[1];
+						}
+					}elseif(file_exists(APPPATH.$module_path.$error[0].'/controllers/'.$error[1].'.php')){
+						$error_class = $error[1];
+						$error_method = $method;
+					}
+					break;
+				case 1://like a
+					if(file_exists(APPPATH.$module_path.$error[0].'/controllers/'.$RTR->routes['default_controller'].'.php')){
+						$error_class = $RTR->routes['default_controller'];
+						$error_method = $method;
+					}
+					break;
 			}
-			else
-			{
-				$e404 = FALSE;
-			}
+
+			$e404 = ! class_exists($error_class.=config_item('controller_suffix'), FALSE);
 		}
 
 		// Did we reset the $e404 flag? If so, set the rsegments, starting from index 1
@@ -486,15 +508,17 @@ if ( ! is_php('5.4'))
 		{
 			$class = $error_class;
 			$method = $error_method;
-
+			
 			$URI->rsegments = array(
-				1 => $class,
-				2 => $method
+				0 => $module,
+				1 => $directory,
+				2 => $class,
+				3 => $method
 			);
 		}
 		else
 		{
-			show_404($RTR->directory.$class.'/'.$method);
+			show_404($module.'/'.$directory.$class.'/'.$method);
 		}
 	}
 

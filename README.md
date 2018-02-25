@@ -28,11 +28,15 @@ PHP>=7.0
 
 	如果您还不了解什么是 HMVC，请先移步维基百科查看：
 	http://zh.wikipedia.org/wiki/HMVC
-
-	扩展方式是在 application 目录下增加 modules 目录，每个模块有自己的目录，并且模块可以有一级子目录，
+	
+	现在，你可以在application内创建模块文件夹并在config.php配置命名：
+```php
+$config['module_folder'] = 'modules';
+```
+	每个模块都可以有一级子目录，
 	比如 application/modules/目录/模块名/....
 
-	每个模块都有自己的 MVC 结构，像这样:
+	都有独立的 MVC 结构，像这样:
 	application/modules/模块名/controllers
 	application/modules/模块名/models
 	application/modules/模块名/views
@@ -54,7 +58,11 @@ $route['m/(:any)/(:any)/(:any)/(:any)'] = 'module/$1/$2/$3/$4';
 注意：controllers文件夹已被弃用，而application目录下的models、services、views文件夹将会是公共目录，
 系统会根据需要从当前模块出发查找相应文件。未发现文件时，即回到公共目录查找，如果依然未找到，将会展示404错误页面。
 
-最后请不要忘记配置默认模块：
+配置404路由的方式:
+```php
+$route['404_override'] = ''; // 模块/路径（可选）/控制器（可选）/方法（可选）
+```
+最后不要忘记配置默认模块：
 ```php
 $route['default_module'] = '';
 ```

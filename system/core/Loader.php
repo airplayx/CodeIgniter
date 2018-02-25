@@ -83,7 +83,7 @@ class CI_Loader {
 	 *
 	 * @var	array
 	 */
-	protected $_ci_services_paths = array(APPPATH);
+	protected $_ci_service_paths = array(APPPATH);
 	
 	/**
 	 * List of loaded services
@@ -140,7 +140,7 @@ class CI_Loader {
 	var $_ci_is_inside_module = false; 
     var $_ci_module_path = '';
     var $_ci_module_class = '';
-    var $_ci_module_models = array();
+
 
 	// --------------------------------------------------------------------
 
@@ -307,12 +307,11 @@ class CI_Loader {
 		$model_paths = $this->_ci_model_paths;
 		if ($this->_ci_is_inside_module)
         {
-        	//加载当前模块内模型
             $module_class_name = $this->_ci_module_class;
-            array_unshift($model_paths, APPPATH.'modules/'.$this->_ci_module_path.'/');
+            array_unshift($model_paths, APPPATH.config_item('module_folder').'/'.$this->_ci_module_path.'/');
             if (isset($CI->$module_class_name->$name))
             {
-                throw new RuntimeException('The model name you are loading is the name of a resource that is already being used: '.$module_class_name.'.'.$$model.$CI->config->item('model_suffix'));
+                throw new RuntimeException('The model name you are loading is the name of a resource that is already being used: '.$module_class_name.'.'.$$model.config_item('model_suffix'));
             }
         }
         else
@@ -373,7 +372,7 @@ class CI_Loader {
 		}
 
 		$model = ucfirst($model);
-		$model_class=$model.$CI->config->item('model_suffix');
+		$model_class=$model.config_item('model_suffix');
 		if ( ! class_exists($model, FALSE))
 		{
 			
@@ -548,8 +547,7 @@ class CI_Loader {
         {
             $ext = pathinfo($view, PATHINFO_EXTENSION);
             $view = ($ext == '') ? $view.'.php' : $view;
-            $path = APPPATH.'modules/'.$this->_ci_module_path.'/views/'.$view;
-
+            $path = APPPATH.config_item('module_folder').'/'.$this->_ci_module_path.'/views/'.$view;
             if (file_exists($path))
             {
                 return $this->_ci_load(array('_ci_view' => $view, '_ci_vars' => $this->_ci_object_to_array($vars), '_ci_path' => $path, '_ci_return' => $return));
@@ -656,10 +654,13 @@ class CI_Loader {
 		}
 
 		$service = ucfirst($service);
+		$service_class=$service.config_item('service_suffix');
+		$service_paths = $this->_ci_service_paths;
+
 		if ( ! class_exists($service, FALSE))
 		{
-			$service_class=$service.$CI->config->item('service_suffix');
-			foreach ($this->_ci_model_paths as $service_path)
+			array_unshift($service_paths, APPPATH.config_item('module_folder').'/'.$this->_ci_module_path.'/');
+			foreach ($service_paths as $service_path)
 			{
 				if ( ! file_exists($service_path.'services/'.$path.$service.'.php'))
 				{

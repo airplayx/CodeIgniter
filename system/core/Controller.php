@@ -76,10 +76,10 @@ class CI_Controller {
 		}
 		$this->load =& load_class('Loader', 'core');
 		$reflector = new ReflectionClass($this);
-		$path = substr(dirname($reflector->getFileName()), strlen(realpath(APPPATH.'modules').DIRECTORY_SEPARATOR));
+		$path = substr(dirname($reflector->getFileName()), strlen(realpath(APPPATH.config_item('module_folder')).DIRECTORY_SEPARATOR));
 		$class_path = implode('/', array_slice(explode(DIRECTORY_SEPARATOR, $path), 0, -1));
 		$class_name = $reflector->getName();
-		// 通知 Loader 类，Module 就绪
+		
 		$this->load->_ci_module_ready($class_path, $class_name);
 		$this->load->initialize();
 		log_message('info', 'CI_Controller Class Initialized');
@@ -120,7 +120,7 @@ class Smarty_Controller extends CI_Controller {
 		if(!config_item('composer_autoload')){
 			show_error('$config[\'composer_autoload\'] is set to FALSE,please set it to TRUE.');
 		}else{
-			if(!class_exists('Smarty')){
+			if(!class_exists('Smarty',FALSE)){
 				show_error('Unable to load class: Smarty,please Execute \'composer require smarty/smarty\' in '.APPPATH);
 			}else{
 				$this->load->config('smarty');

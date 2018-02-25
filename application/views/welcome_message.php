@@ -76,7 +76,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 		<code>application/views/welcome_message.php</code>
 
 		<p>The corresponding controller for this page is found at:</p>
-		<code>application/modules/welcome/controllers/Welcome.php</code>
+		<code>application/<?php echo config_item('module_path');?>/welcome/controllers/Welcome.php</code>
 
 		<p>If you are exploring CodeIgniter for the very first time, you should start by reading the <a target="_blank" href="http://codeigniter.org.cn/user_guide/">User Guide</a>.</p>
 	</div>

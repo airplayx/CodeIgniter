@@ -199,7 +199,7 @@ class CI_Router {
 			isset($route['default_module']) && $this->default_module = $route['default_module'];
 			isset($route['default_controller']) && $this->default_controller = $route['default_controller'];
 			isset($route['translate_uri_dashes']) && $this->translate_uri_dashes = $route['translate_uri_dashes'];
-			unset($route['default_controller'], $route['translate_uri_dashes']);
+			// unset($route['default_controller'], $route['translate_uri_dashes']);
 			$this->routes = $route;
 		}
 
@@ -236,8 +236,9 @@ class CI_Router {
 
 				$this->uri->rsegments = array(
 					0 => $this->module,
-					1 => $this->class,
-					2 => $this->method
+					1 => $this->directory,
+					2 => $this->class,
+					3 => $this->method
 				);
 			}
 			else
@@ -323,9 +324,7 @@ class CI_Router {
 		{
 			$method = $this->method;
 		}
-
-
-		if ( ! file_exists(APPPATH.'modules/'.$this->default_module.'/'.$this->directory.'controllers/'.ucfirst($class).'.php'))
+		if ( ! file_exists(APPPATH.config_item('module_folder').'/'.$this->default_module.'/'.$this->directory.'controllers/'.ucfirst($class).'.php'))
 		{
 			// This will trigger 404 later
 			return;
@@ -360,8 +359,8 @@ class CI_Router {
 	protected function _validate_request($segments)
 	{
 		$c = count($segments);
-
 		$directory_override = isset($this->directory);
+		$module_path=config_item('module_folder');
 		// Loop through our segments and return as soon as a controller
 		// is found or when such a directory doesn't exist
 		$default_request=[$this->default_module,$this->directory,$this->default_controller,$this->method];
@@ -373,13 +372,13 @@ class CI_Router {
 				$segments[1]=$this->default_controller;
 			}
 			if ( 
-				! file_exists(APPPATH.'modules/'.$test.'/controllers/'.$segments[1].'.php')
+				! file_exists(APPPATH.$module_path.'/'.$test.'/controllers/'.$segments[1].'.php')
 				&& $directory_override === FALSE
-				&& is_dir(APPPATH.'modules/'.$this->directory.$segments[0])
+				&& is_dir(APPPATH.$module_path.'/'.$this->directory.$segments[0])
 			){
 				$this->set_directory($segments[1], TRUE);
 				continue;
-			}elseif(is_dir(APPPATH.'modules/'.$test)){
+			}elseif(is_dir(APPPATH.$module_path.'/'.$test)){
 				array_splice($segments,1,0,'');
 			}
 			$segments=array_replace($default_request,$segments);
