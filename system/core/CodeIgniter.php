@@ -454,56 +454,57 @@ if ( ! is_php('5.4'))
 		if ( ! empty($RTR->routes['404_override']))
 		{
 			$url_format_count=sscanf($RTR->routes['404_override'], '%[^/]/%[^/]/%[^/]/%s', $error[0],$error[1],$error[2], $error[3]);
-
 			$error_class=$RTR->routes['default_controller'];
 			$error_method=$method;
+			$module_path=APPPATH.$module_path.$error[0].DIRECTORY_SEPARATOR;
 			switch ($url_format_count) {
 				case 4://like m/d/c/f
-					if(file_exists(APPPATH.$module_path.$error[0].'/'.$error[1].'/controllers/'.$error[2].'.php')){
-						require_once(APPPATH.$module_path.$error[0].'/'.$error[1].'/controllers/'.$error[2].'.php');
+					if(file_exists($module_path.$error[1].'/controllers/'.$error[2].'.php')){
+						require_once($module_path.$error[1].'/controllers/'.$error[2].'.php');
 						$error_class = $error[2];
 						$error_method = $error[3];
 						$RTR->directory = $error[1];
 					}
 					break;
 				case 3://like m/d/c
-					if(is_dir(APPPATH.$module_path.$error[0].'/'.$error[1])){
-						if(file_exists(APPPATH.$module_path.$error[0].'/'.$error[1].'/controllers/'.$error[2].'.php')){
-							require_once(APPPATH.$module_path.$error[0].'/'.$error[1].'/controllers/'.$error[2].'.php');
+					if(is_dir($module_path.$error[1])){
+						if(file_exists($module_path.$error[1].'/controllers/'.$error[2].'.php')){
+							require_once($module_path.$error[1].'/controllers/'.$error[2].'.php');
 							$error_class = $error[2];
-							$error_method = $method;
 							$RTR->directory = $error[1];
 						}
 					}//like m/c/f
-					elseif(file_exists(APPPATH.$module_path.$error[0].'/controllers/'.$error[1].'.php')){
-						require_once(APPPATH.$module_path.$error[0].'/controllers/'.$error[1].'.php');
+					elseif(file_exists($module_path.'controllers/'.$error[1].'.php')){
+						require_once($module_path.'controllers/'.$error[1].'.php');
 						$error_class = $error[1];
 						$error_method = $error[2];
 					}
 					break;
 				case 2://like m/d
-					if(is_dir(APPPATH.$module_path.$error[0].'/'.$error[1])){
-						if(file_exists(APPPATH.$module_path.$error[0].'/'.$error[1].'/controllers/'.$error_class.'.php')){
-							require_once(APPPATH.$module_path.$error[0].'/'.$error[1].'/controllers/'.$error_class.'.php');
+					if(is_dir($module_path.$error[1])){
+						if(file_exists($module_path.$error[1].'/controllers/'.$error_class.'.php')){
+							require_once($module_path.$error[1].'/controllers/'.$error_class.'.php');
 							$RTR->directory = $error[1];
 						}
 					}//like m/c
-					elseif(file_exists(APPPATH.$module_path.$error[0].'/controllers/'.$error[1].'.php')){
-						require_once(APPPATH.$module_path.$error[0].'/controllers/'.$error[1].'.php');
+					elseif(file_exists($module_path.'controllers/'.$error[1].'.php')){
+						require_once($module_path.'controllers/'.$error[1].'.php');
 						$error_class = $error[1];
 					}
 					break;
 				case 1://like m
-					if(is_dir(APPPATH.$module_path.$error[0].'/'.$RTR->routes['default_module'])){
-						require_once(APPPATH.$module_path.$error[0].'/'.$RTR->routes['default_module'].'/controllers/'.$error_class.'.php');
+					if(is_dir($module_path.$RTR->routes['default_module'])){
+						require_once($module_path.$RTR->routes['default_module'].'/controllers/'.$error_class.'.php');
 						$RTR->directory = $RTR->routes['default_module'];
 					}
-					elseif(file_exists(APPPATH.$module_path.$error[0].'/controllers/'.$error_class.'.php')){
-						require_once(APPPATH.$module_path.$error[0].'/controllers/'.$error_class.'.php');
+					elseif(file_exists($module_path.'controllers/'.$error_class.'.php')){
+						require_once($module_path.'controllers/'.$error_class.'.php');
 					}
 					break;
 			}
 			sscanf($error_method,'%[^/]',$error_method);
+			$module=$error[0];
+			$directory=$RTR->directory;
 			$e404 = ! class_exists($error_class.=config_item('controller_suffix'), FALSE);
 		}
 
