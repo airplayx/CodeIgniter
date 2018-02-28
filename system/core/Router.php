@@ -318,18 +318,20 @@ class CI_Router {
 		{
 			show_error('Unable to determine what should be displayed. A default route has not been specified in the routing file.');
 		}
-
+		
+		$module=ucfirst($this->default_module);
 		// Is the method being specified?
 		if (sscanf($this->default_controller, '%[^/]/%s', $class, $method) !== 2)
 		{
 			$method = $this->method;
 		}
-		if ( ! file_exists(APPPATH.config_item('module_folder').'/'.$this->default_module.'/'.$this->directory.'controllers/'.ucfirst($class).'.php'))
+		
+		if ( ! file_exists(APPPATH.config_item('module_folder').'/'.$module.'/'.$this->directory.'controllers/'.ucfirst($class).'.php'))
 		{
 			// This will trigger 404 later
 			return;
 		}
-		$module=$this->default_module;
+		
 		$this->set_module($module);
 		$this->set_class($class);
 		$this->set_class_file($class);
@@ -342,6 +344,7 @@ class CI_Router {
 			2 => $class,
 			3 => $method
 		);
+		
 		log_message('debug', 'No URI present. Default controller set.');
 	}
 
