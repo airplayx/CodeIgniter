@@ -421,7 +421,7 @@ if ( ! is_php('5.4'))
 		}
 		elseif (method_exists($class, '_remap'))
 		{
-			$params = array($method, array_slice($URI->rsegments, 2));
+			$params = array($method, array_slice($URI->rsegments, 4));
 			$method = '_remap';
 		}
 		elseif ( ! method_exists($class, $method))
@@ -455,11 +455,10 @@ if ( ! is_php('5.4'))
 		{
 			$url_format_count=sscanf($RTR->routes['404_override'], '%[^/]/%[^/]/%[^/]/%s', $segments[0],$segments[1],$segments[2], $segments[3]);
 			$error_class=$RTR->routes['default_controller'];
-			$error_method=$method;
+			$error_method='index';
 			$i=0;
 			while ($i < $url_format_count) {
 				$RTR->directory.=$RTR->directory.ucfirst($RTR->translate_uri_dashes === TRUE ? str_replace('-', '_', $segments[$i]) : $segments[$i]).'/';
-
 				if(is_dir(APPPATH.$module_path.$RTR->directory)
 				){
 					if(is_file(APPPATH.$module_path.$RTR->directory.'controllers/'.$segments[$i+1].'.php')){
@@ -512,17 +511,21 @@ if ( ! is_php('5.4'))
 		{
 			$class = $error_class;
 			$method = $error_method;
-			
+
 			$URI->rsegments = array(
 				0 => $module,
 				1 => $directory,
 				2 => $class,
 				3 => $method
 			);
+
+			if( ! method_exists($class, $method)){
+				show_error('class \''.$class.'\' does not have a method \''.$method.'\', please check $route[\'404_override\'] !'); 
+			}
 		}
 		else
 		{
-			show_404($module.'/'.$directory.$class.'/'.$method);
+			show_404($directory.$class.'/'.$method);
 		}
 	}
 
