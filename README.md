@@ -14,9 +14,14 @@ PHP>=7.0
 ## 安装
 
 请参阅 CodeIgniter用户指南的 [安装部分](https://codeigniter.com/user_guide/installation/index.html)
-
-## 更新日志和新功能
-
+## 更新日志
+##### 2018.3.24 增加3个library:
+```diff
++ markdown库 https://github.com/jonlabelle/ci-markdown
++ unzip库 https://github.com/philsturgeon/codeigniter-unzip
++ sitemap库 https://github.com/Mitaka777/ci-sitemap
+```
+## 新功能
 #### 0.源框架修改记录：
 	* 修正php7+版本中无法正确记录session。
 	* 文件夹cache、errors、logs、session、temp已经搬到_writable目录。
