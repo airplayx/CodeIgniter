@@ -3,6 +3,7 @@
 !application/*/.htaccess
 application/vendor/
 application/composer.lock
+application/config/database.php
 !public/index.php
 _writable/*
 
