@@ -389,12 +389,8 @@ class CI_Session {
 				$this->_sid_regexp = '[0-9a-zA-Z,-]';
 				break;
 		}
-		
-		if(PHP_VERSION_ID >= 70000){
-			$this->_sid_regexp .= '{10,'.$sid_length.'}';
-		}else{
-			$this->_sid_regexp .= '{'.$sid_length.'}';
-		}
+
+		$this->_sid_regexp .= '{'.$sid_length.'}';
 	}
 
 	// ------------------------------------------------------------------------
@@ -608,7 +604,7 @@ class CI_Session {
 	// ------------------------------------------------------------------------
 
 	/**
-	 * Unmark flash
+	 * Unmark temp
 	 *
 	 * @param	mixed	$key	Session data key(s)
 	 * @return	void
